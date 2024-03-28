@@ -15,6 +15,7 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
 
+// Move creation of Supabase client INTO each action function
 const supabase = createClient(
   process.env.SUPABASE_URL ?? "",
   process.env.SUPABASE_SERVICE_KEY ?? ""
