@@ -12,7 +12,13 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const openai = new OpenAI({apiKey: process.env.OPENAI_API_KEY })
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLEAI_API_KEY)
+const googleApiKey = process.env.GOOGLEAI_API_KEY;
+
+if (!googleApiKey) {
+  throw new Error('Google API key is not defined');
+}
+
+const genAI = new GoogleGenerativeAI(googleApiKey)
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
@@ -130,7 +136,7 @@ if (error) {
   // Handle error accordingly
 } else {
   // console.log("Transcript added successfully:", data);
-  await getSummaryAndFeedback(apptid, transcript)
+  getSummaryAndFeedbackGemini(apptid, transcript)
 }
 }
 
@@ -183,7 +189,7 @@ async function getSummaryAndFeedbackGemini(apptid: string, transcript: object) {
     const transcriptString = JSON.stringify(transcript);
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
-    const prompt = `I am going to give you a TRANSCRIPT of a medical appointment. You are a helpful and highly trained medical assistant designed to output a JSON object with a 'summary' and critical 'feedback' of a medical appointment audio transcript. This JSON object should contain two keys: 'summary' and 'feedback'. The corresponding values should be strings of at least 400 words. TRANSCRIPT: ${transcriptString}`
+    const prompt = `I am going to give you a TRANSCRIPT of a medical appointment. You are a helpful and highly trained medical assistant designed to output a JSON object with a 'summary' and critical 'feedback' of a medical appointment audio transcript. This JSON object should contain two keys: 'summary' and 'feedback'. The corresponding values should be strings of at least 400 words. Just return a valid JSON object. DO NOT RETURN MARKDOWN. DO NOT START YOUR RESPONSE WITH THREE BACKTICKS. Your response must start and end with curly brackets. TRANSCRIPT: ${transcriptString}`
 
 
     const result = await model.generateContent(prompt);
