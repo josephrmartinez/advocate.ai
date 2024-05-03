@@ -5,11 +5,14 @@ import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import OpenAI from "openai"
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
 // import { embed } from './embed'
 
 
 const openai = new OpenAI({apiKey: process.env.OPENAI_API_KEY })
 
+const genAI = new GoogleGenerativeAI(process.env.GOOGLEAI_API_KEY)
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
@@ -173,6 +176,32 @@ async function getSummaryAndFeedback(apptid: string, transcript: object) {
   }
 }
 
+// Send transcript to OpenAI model for summarization and feedback
+async function getSummaryAndFeedbackGemini(apptid: string, transcript: object) {
+  console.log("Running getSummaryAndFeedback using Gemini")
+  try {
+    const transcriptString = JSON.stringify(transcript);
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+
+    const prompt = `I am going to give you a TRANSCRIPT of a medical appointment. You are a helpful and highly trained medical assistant designed to output a JSON object with a 'summary' and critical 'feedback' of a medical appointment audio transcript. This JSON object should contain two keys: 'summary' and 'feedback'. The corresponding values should be strings of at least 400 words. TRANSCRIPT: ${transcriptString}`
+
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    console.log("Gemini response:", text);
+
+    const responseContent = JSON.parse(text)
+
+  
+    if (typeof responseContent === 'object' && responseContent !== null) {
+      const { summary = "", feedback = "" } = responseContent;
+      updateApptWithSummaryAndFeedback(apptid, summary, feedback);
+    }
+  } catch (error) {
+    console.error("Error with Gemini prediction:", error);
+  }
+}
 
 // Update the appointment table row with the summary and feedback
 async function updateApptWithSummaryAndFeedback(apptid: string, summary: string, feedback: string){
